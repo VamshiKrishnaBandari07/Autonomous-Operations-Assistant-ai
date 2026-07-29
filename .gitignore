@@ -16,6 +16,7 @@ dist/
 # Data & uploads (keep folder structure)
 data/*.db
 data/chroma/**
+data/demo_workflow_log.json
 !data/.gitkeep
 documents/**
 !documents/.gitkeep
