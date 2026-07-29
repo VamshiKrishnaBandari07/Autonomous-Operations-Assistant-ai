@@ -328,6 +328,7 @@ class HealthResponse(BaseModel):
     llm_configured: bool
     n8n_enabled: bool
     demo_auth_bypass: bool
+    demo_mode: bool
 
 
 class SystemSettingsOut(BaseModel):
@@ -342,3 +343,5 @@ class SystemSettingsOut(BaseModel):
     allowed_extensions: List[str]
     demo_auth_bypass: bool
     llm_configured: bool
+    demo_mode: bool
+    demo_data_dir: str

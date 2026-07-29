@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: opsflow-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: DEMO_MODE
+        value: "true"
+      - key: VECTOR_STORE
+        value: memory
+      - key: N8N_ENABLED
+        value: "false"
+      - key: DEMO_AUTH_BYPASS
+        value: "true"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: "*"

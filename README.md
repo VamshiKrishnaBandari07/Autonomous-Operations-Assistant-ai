@@ -1,186 +1,218 @@
 # OpsFlow AI
 
-AI-first **Operations Automation Platform** for enterprise knowledge retrieval, task automation, meeting intelligence, employee onboarding, and workflow orchestration.
+**Autonomous AI Operations Platform** — a recruiter-ready portfolio demo of LLM agents, RAG, and workflow automation for AI Innovation Engineer, AI Operations, and AI Automation roles.
 
-Built as a portfolio-quality system for AI Innovation Engineer / AI Operations roles — combining **RAG**, **multi-agent orchestration (LangChain)**, **FastAPI**, **Streamlit**, and **n8n**.
+> **Public demo mode** ships with fictional company data and simulated n8n workflows. No Slack/SMTP credentials required.
 
 ---
 
-## Features
+## Overview
 
-| Capability | Description |
-|---|---|
-| **Knowledge Agent (RAG)** | Q&A over company PDFs/DOCX/TXT with citations + confidence |
-| **Task Agent** | Natural language → structured tasks (title, priority, owner, deadline) |
-| **Meeting Agent** | Transcript → summary, decisions, action items → tasks |
-| **Reporting Agent** | Weekly ops reports with bottlenecks and trends |
-| **Onboarding Agent** | New hire → welcome email → accounts checklist → HR tasks → Slack |
-| **Conversation history** | Persisted chats with agent metadata and citations |
-| **Analytics** | Queries solved, estimated hours saved, common request types |
-| **n8n automation** | Email/task/document/meeting/onboarding webhooks |
+OpsFlow AI helps operations teams eliminate repetitive work:
+
+- Answer policy questions with **RAG + citations**
+- Turn chat / meetings into **owned tasks**
+- Run **employee onboarding** end-to-end
+- Surface **business-impact analytics** (queries, hours saved, success rate)
+
+Built as a production-shaped MVP: FastAPI backend, Streamlit product UI, modular agents, vector retrieval, and automation hooks.
+
+---
+
+## Problem
+
+Operations teams drown in repetitive work — policy lookups, onboarding checklists, meeting follow-ups, and status reporting — while tribal knowledge lives in scattered documents. Manual handoffs to Slack/email create delays and missed owners.
+
+## Solution
+
+OpsFlow AI combines:
+
+1. **Specialist LLM agents** for knowledge, tasks, meetings, reporting, and onboarding  
+2. **RAG** over company handbooks/policies with confidence + sources  
+3. **Workflow automation** (real n8n or simulated demo mode) for notifications  
 
 ---
 
 ## Architecture
 
-```mermaid
-flowchart LR
-  UI[Streamlit UI] --> API[FastAPI]
-  API --> Orch[Agent Orchestrator]
-  Orch --> K[Knowledge / RAG]
-  Orch --> T[Task]
-  Orch --> M[Meeting]
-  Orch --> R[Reporting]
-  Orch --> O[Onboarding]
-  K --> VS[(Chroma / Memory)]
-  API --> DB[(SQLite / Postgres)]
-  API --> N8N[n8n Webhooks]
-  N8N --> Slack[Slack / Email]
+```
+User
+  │
+Streamlit UI
+  │
+FastAPI
+  │
+LangChain Agents  (+ optional LangGraph router)
+  │
+RAG Pipeline
+  │
+Vector Database (Chroma / in-memory)
+  │
+n8n Automation (live or DEMO simulated)
 ```
 
-### Knowledge Agent workflow
-
-1. User question enters the orchestrator  
-2. Intent routed to Knowledge Agent  
-3. Query embedded → top-k chunks retrieved  
-4. Chunks filtered by similarity threshold (no weak matches)  
-5. LLM answers grounded only in retrieved context (offline excerpt mode without API key)  
-6. Confidence + citations returned to the UI  
+```mermaid
+flowchart TD
+  U[User] --> UI[Streamlit UI]
+  UI --> API[FastAPI]
+  API --> A[Agent Orchestrator]
+  A --> K[Knowledge RAG]
+  A --> T[Task Agent]
+  A --> M[Meeting Agent]
+  A --> R[Reporting Agent]
+  A --> O[Onboarding Agent]
+  K --> V[(Vector DB)]
+  API --> DB[(SQLite / Postgres)]
+  API --> N8N[n8n / Demo Simulator]
+  N8N --> N[Slack / Email style notify]
+```
 
 ---
 
-## Quick start (local)
+## AI Agent Workflow
 
-### Prerequisites
+**Example — Employee onboarding**
 
-- Python 3.10+
-- OpenAI API key *(optional — offline heuristics still work)*
+```
+Employee Added
+     ↓
+Onboarding Agent → welcome email
+     ↓
+n8n simulation → accounts checklist
+     ↓
+Task Agent → HR task pack
+     ↓
+Notification → Slack-style message
+```
 
-### Setup
+**Example — Policy question**
+
+```
+User question → Knowledge Agent → retrieve chunks → grounded answer + citations + confidence
+```
+
+---
+
+## Demo Features
+
+| Feature | What recruiters see |
+|---|---|
+| **Home** | Product positioning + architecture |
+| **AI Operations Assistant** | RAG chat with sources (try annual leave question) |
+| **Employee Onboarding Demo** | One-click workflow with email, checklist, tasks, notify |
+| **AI Agent Showcase** | Input/output contracts for every agent |
+| **Analytics** | 245 queries · 128 tasks · 42 hrs · 96% success (demo baseline) |
+| **DEMO_MODE** | Sample docs/employees seeded; n8n simulated |
+
+Sample prompt: *How many annual leave days do employees receive?* → **25 days** from `employee_handbook.txt`.
+
+---
+
+## Technology Stack
+
+- **UI:** Streamlit, Plotly  
+- **API:** FastAPI, Pydantic, SQLAlchemy  
+- **AI:** LangChain, OpenAI (optional), SentenceTransformers / Chroma  
+- **Automation:** n8n webhooks + demo simulator  
+- **Deploy:** Docker, Railway/Render-ready `Procfile` + `render.yaml`  
+
+---
+
+## Screenshots
+
+Capture these for GitHub after local run:
+
+1. **Home** — hero + feature grid  
+2. **AI Operations Assistant** — answer with citation cards  
+3. **Onboarding Demo** — pipeline steps + welcome email  
+4. **Analytics** — KPI row + charts  
+5. **Agent Showcase** — agent cards  
+
+---
+
+## Local Setup
 
 ```bash
 python -m venv .venv
-
-# Windows
-.venv\Scripts\activate
-
-# macOS / Linux
+# Windows: .venv\Scripts\activate
 source .venv/bin/activate
 
 pip install -r requirements.txt
-copy .env.example .env   # Windows
-# cp .env.example .env   # macOS / Linux
-```
+copy .env.example .env   # set ADMIN_PASSWORD; optional OPENAI_API_KEY
 
-Edit `.env`:
-
-```
-OPENAI_API_KEY=sk-...          # optional
-VECTOR_STORE=memory            # or chroma for full RAG
-DEMO_AUTH_BYPASS=true          # local demos only
-N8N_ENABLED=false
-```
-
-### Run
-
-```bash
-uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn backend.main:app --reload --port 8000
 streamlit run frontend/streamlit_app.py
 ```
 
-| Service | URL |
+| URL | Purpose |
 |---|---|
-| API docs | http://localhost:8000/docs |
-| Streamlit UI | http://localhost:8501 |
+| http://localhost:8501 | Demo UI |
+| http://localhost:8000/docs | API |
 
-Default login: `admin` / value of `ADMIN_PASSWORD` in `.env`
+Default user: `admin` / value of `ADMIN_PASSWORD` in `.env`.
 
-### Try it
+### Demo checklist
 
-1. **Document Upload** → upload `documents/sample_ops_policy.txt`  
-2. **Chat** → *“How quickly must production incidents be acknowledged?”*  
-3. **Employee Onboarding** → add a new hire and watch the 5-step pipeline  
+1. Open **Home** — confirm DEMO MODE banner  
+2. **AI Operations Assistant** — ask the annual leave question  
+3. **Employee Onboarding Demo** — run one-click workflow  
+4. **Analytics Dashboard** — review KPIs  
 
 ---
 
-## Docker
+## Deployment Guide
+
+### Docker Compose (full stack)
 
 ```bash
 copy .env.example .env
 docker compose up --build
 ```
 
-| Service | URL |
-|---|---|
-| Backend | http://localhost:8000 |
-| Streamlit | http://localhost:8501 |
-| n8n | http://localhost:5678 |
+### Railway
 
-Compose sets `N8N_WEBHOOK_BASE_URL=http://n8n:5678/webhook` and disables demo auth bypass.
+1. New project → Deploy from GitHub repo  
+2. Set env: `DEMO_MODE=true`, `VECTOR_STORE=memory`, `N8N_ENABLED=false`, `SECRET_KEY`, `ADMIN_PASSWORD`  
+3. Optional: `OPENAI_API_KEY`  
+4. Health check: `/api/v1/health`  
 
-Import workflows from `automation/n8n_workflows/` into n8n.
+### Render
 
----
+Use `render.yaml`, set `OPENAI_API_KEY` in the dashboard, deploy.
 
-## API overview
+### Production hardening
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `POST` | `/api/v1/auth/login` | JWT login |
-| `POST` | `/api/v1/chat` | Orchestrated Operations AI chat |
-| `GET` | `/api/v1/chat/conversations` | Conversation history |
-| `POST` | `/api/v1/documents/upload` | Upload + RAG index |
-| `GET/POST/PATCH` | `/api/v1/tasks` | Task management |
-| `POST` | `/api/v1/tasks/extract` | NL → tasks |
-| `POST` | `/api/v1/meetings/summarise` | Meeting intelligence |
-| `POST` | `/api/v1/onboarding/employees` | New-hire automation pipeline |
-| `POST` | `/api/v1/reports/generate` | Weekly ops report |
-| `GET` | `/api/v1/analytics` | KPI dashboard data |
-| `GET` | `/api/v1/health` | Health + vector backend + LLM status |
-
----
-
-## Security
-
-- Secrets via environment variables (`.env` never committed)
-- JWT bearer authentication (`python-jose` + `bcrypt`)
-- `DEMO_AUTH_BYPASS` for local Streamlit demos only — **disable in production**
-- Upload validation (extension allow-list, size limit, safe filenames)
-- Pydantic request validation on write endpoints
-- Automation webhook failures are non-blocking
-
----
-
-## Testing
-
-```bash
-pytest -q
 ```
+DEMO_MODE=false
+DEMO_AUTH_BYPASS=false
+N8N_ENABLED=true
+VECTOR_STORE=chroma
+APP_DEBUG=false
+```
+
+---
+
+## Demo Safety
+
+- No real company data in `demo_data/`  
+- No Slack/SMTP required when `DEMO_MODE=true`  
+- Secrets only via environment variables  
+- UI does not embed API keys or default production passwords  
 
 ---
 
 ## Project structure
 
 ```
-├── frontend/                 # Streamlit dashboard (7 pages)
-├── backend/
-│   ├── api/                  # REST routers
-│   ├── agents/               # Knowledge, Task, Meeting, Reporting, Onboarding
-│   ├── rag/                  # Loaders, chunking, vector store, pipeline
-│   ├── database/             # SQLAlchemy session
-│   ├── models/               # ORM + Pydantic schemas
-│   ├── services/             # Business logic + n8n hooks
-│   └── core/                 # Config, security, deps
-├── automation/n8n_workflows/ # Importable n8n JSON
-├── documents/                # Uploads + sample policies
-├── tests/
-├── requirements.txt
-├── docker-compose.yml
-└── README.md
+frontend/          Streamlit product UI
+backend/           FastAPI + agents + RAG + demo seed
+demo_data/         Handbook, policy PDF, transcript, sample tasks
+automation/        n8n workflow JSON
+tests/             Pytest suite
 ```
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Built for educational / portfolio demonstration.
+MIT — see [LICENSE](LICENSE).

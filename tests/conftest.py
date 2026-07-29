@@ -21,6 +21,8 @@ os.environ["ADMIN_PASSWORD"] = "opsflow-admin-change-me"
 os.environ["APP_ENV"] = "test"
 os.environ["DEMO_AUTH_BYPASS"] = "true"
 os.environ["RAG_SCORE_THRESHOLD"] = "0.15"
+os.environ["DEMO_MODE"] = "true"
+os.environ["DEMO_DATA_DIR"] = "./demo_data"
 
 from backend.core.config import get_settings
 from backend.core.deps import get_db

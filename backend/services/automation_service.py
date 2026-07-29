@@ -1,4 +1,4 @@
-"""n8n webhook integration for OpsFlow automation workflows."""
+"""n8n webhook integration with demo-mode simulation."""
 
 from __future__ import annotations
 
@@ -14,6 +14,15 @@ logger = logging.getLogger(__name__)
 
 async def _post_webhook(path: str, payload: dict[str, Any]) -> bool:
     settings = get_settings()
+
+    # Portfolio demo: simulate automation without Slack/SMTP credentials
+    if settings.demo_mode and not settings.n8n_enabled:
+        from backend.demo.seed import append_workflow_simulation
+
+        append_workflow_simulation(path, payload)
+        logger.info("DEMO_MODE simulated n8n webhook: %s", path)
+        return True
+
     if not settings.n8n_enabled:
         logger.info("n8n disabled — skipping webhook %s", path)
         return False
@@ -26,7 +35,12 @@ async def _post_webhook(path: str, payload: dict[str, Any]) -> bool:
             logger.info("n8n webhook succeeded: %s (%s)", url, response.status_code)
             return True
     except Exception as exc:  # noqa: BLE001
-        # Automation failures must not break core API flows
+        if settings.demo_mode:
+            from backend.demo.seed import append_workflow_simulation
+
+            append_workflow_simulation(path, {**payload, "fallback": str(exc)})
+            logger.warning("n8n failed; DEMO_MODE simulated webhook %s (%s)", path, exc)
+            return True
         logger.warning("n8n webhook failed (%s): %s", url, exc)
         return False
 
@@ -47,6 +61,5 @@ async def trigger_meeting_summary(payload: dict[str, Any]) -> bool:
 
 
 async def trigger_employee_onboarding(payload: dict[str, Any]) -> bool:
-    """Notify n8n: accounts checklist + Slack for a new hire."""
     settings = get_settings()
     return await _post_webhook(settings.n8n_employee_onboarding_webhook, payload)

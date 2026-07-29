@@ -1,0 +1,21 @@
+Weekly Operations Sync — Meeting Transcript (Demo)
+Date: 2026-07-22
+Attendees: Jordan Lee (Ops Lead), Aisha Rahman, Sam Patel, Priya Shah
+
+Jordan: Thanks everyone. First item — the billing batch migration. We decided to move it to Sunday nights starting next week.
+
+Aisha: Agreed. I'll prepare the rollback plan by Friday and share it in #ops-releases.
+
+Sam: Action item for me — notify Finance and update the runbook before cutover.
+
+Priya: We also agreed to freeze non-critical deploys on Friday afternoons until the migration is stable.
+
+Jordan: Perfect. Priya, please create a task to add the freeze to the change calendar. High priority.
+
+Sam: One bottleneck — open critical tickets are climbing. We should review ownership in tomorrow's standup.
+
+Jordan: Decided — we'll run a 15-minute critical-ticket triage every morning this week.
+
+Aisha: I'll own the triage agenda and invite the on-call engineer.
+
+Jordan: Great. Meeting adjourned.

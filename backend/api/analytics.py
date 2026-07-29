@@ -31,6 +31,7 @@ def health() -> HealthResponse:
         llm_configured=llm_available(),
         n8n_enabled=settings.n8n_enabled,
         demo_auth_bypass=settings.demo_auth_bypass,
+        demo_mode=settings.demo_mode,
     )
 
 
@@ -59,4 +60,6 @@ def system_settings(
         allowed_extensions=settings.allowed_extension_list,
         demo_auth_bypass=settings.demo_auth_bypass,
         llm_configured=llm_available(),
+        demo_mode=settings.demo_mode,
+        demo_data_dir=settings.demo_data_dir,
     )

@@ -75,6 +75,42 @@ div[data-testid="stSidebar"] * {
   font-size: 0.8rem;
   font-weight: 600;
 }
+
+.demo-banner {
+  background: linear-gradient(90deg, #FFF6E5, #F3F8FC);
+  border: 1px solid #E6D5B8;
+  color: #5C4A28;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  margin-bottom: 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ops-hero.landing h1 {
+  font-size: 2.6rem;
+  line-height: 1.05;
+}
+
+.ops-hero.landing h2 {
+  margin: 0.35rem 0 0.6rem 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #D7EAF5 !important;
+}
+
+.ops-hero.landing .eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin: 0;
+}
+
+.ops-hero.landing .lead {
+  max-width: 46rem;
+  font-size: 1.05rem;
+}
 </style>
 """
 

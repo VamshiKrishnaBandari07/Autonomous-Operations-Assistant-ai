@@ -1,0 +1,45 @@
+%PDF-1.4
+1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj
+2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj
+3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources<< /Font<< /F1 5 0 R >> >> >>endobj
+4 0 obj<< /Length 1062 >>stream
+BT /F1 10 Tf 50 750 Td 14 TL
+(OpsFlow Technologies ? Company Operations Policy \(Demo\)) '
+() '
+(1. Incident Response) '
+(All production incidents must be acknowledged within 15 minutes.) '
+(Severity 1 incidents require an incident commander and status updates every 30 minutes.) '
+(Customer-facing outages must be published on the status page within 20 minutes.) '
+() '
+(2. Change Management) '
+(Production changes require peer review and on-call approval.) '
+(Emergency hotfixes need a post-change review within 48 hours.) '
+(Rollback plans are mandatory for high-risk releases.) '
+() '
+(3. Access Control) '
+(Privileged production access is time-bound and ticketed.) '
+(Shared admin accounts are prohibited.) '
+(Access reviews for critical systems run quarterly.) '
+() '
+(4. Data Retention) '
+(Operational logs are retained for 90 days.) '
+(Customer data deletion requests are fulfilled within 30 days.) '
+() '
+(5. Vendor Management) '
+(New SaaS tools require security review before purchase.) '
+(Contracts above £10,000 need Finance and Legal approval.) '
+ET
+endstream endobj
+5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000056 00000 n 
+0000000111 00000 n 
+0000000233 00000 n 
+0000001345 00000 n 
+trailer<< /Size 6 /Root 1 0 R >>
+startxref
+1413
+%%EOF

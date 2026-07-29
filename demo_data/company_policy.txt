@@ -1,0 +1,24 @@
+OpsFlow Technologies — Company Operations Policy (Demo)
+
+1. Incident Response
+All production incidents must be acknowledged within 15 minutes.
+Severity 1 incidents require an incident commander and status updates every 30 minutes.
+Customer-facing outages must be published on the status page within 20 minutes.
+
+2. Change Management
+Production changes require peer review and on-call approval.
+Emergency hotfixes need a post-change review within 48 hours.
+Rollback plans are mandatory for high-risk releases.
+
+3. Access Control
+Privileged production access is time-bound and ticketed.
+Shared admin accounts are prohibited.
+Access reviews for critical systems run quarterly.
+
+4. Data Retention
+Operational logs are retained for 90 days.
+Customer data deletion requests are fulfilled within 30 days.
+
+5. Vendor Management
+New SaaS tools require security review before purchase.
+Contracts above £10,000 need Finance and Legal approval.

@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     # Local demos only — never enable in production
     demo_auth_bypass: bool = True
 
+    # Public portfolio demo (sample data + simulated n8n)
+    demo_mode: bool = True
+    demo_data_dir: str = "./demo_data"
+
     # n8n
     n8n_webhook_base_url: str = "http://localhost:5678/webhook"
     n8n_enabled: bool = False
