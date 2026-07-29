@@ -1,0 +1,38 @@
+{
+  "name": "OpsFlow — Task Created Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "task-created",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-task",
+      "name": "Task Created Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#operations",
+        "text": "=🗂️ New task #{{$json.task_id}}: *{{$json.title}}*\nPriority: {{$json.priority}} | Owner: {{$json.owner}} | Source: {{$json.source}}\nDeadline: {{$json.deadline || 'None'}}",
+        "otherOptions": {}
+      },
+      "id": "slack-task",
+      "name": "Notify Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [520, 300]
+    }
+  ],
+  "connections": {
+    "Task Created Webhook": {
+      "main": [[{ "node": "Notify Slack", "type": "main", "index": 0 }]]
+    }
+  },
+  "meta": {
+    "description": "Fired by OpsFlow whenever a task is created (chat, meeting, API, or n8n)."
+  }
+}

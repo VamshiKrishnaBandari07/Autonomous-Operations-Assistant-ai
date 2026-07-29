@@ -1,0 +1,69 @@
+{
+  "name": "OpsFlow — Meeting Summary Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meeting-summary",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-meeting",
+      "name": "Meeting Summary Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = items[0].json;\nconst decisions = (j.key_decisions || []).map(d => `• ${d}`).join('\\n');\nconst actions = (j.action_items || []).map(a => `• ${a.title} (${a.owner})`).join('\\n');\nreturn [{\n  json: {\n    title: j.title,\n    summary: j.summary,\n    decisions,\n    actions,\n    tasks_created: j.tasks_created || 0\n  }\n}];"
+      },
+      "id": "format-message",
+      "name": "Format Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#operations",
+        "text": "=📝 *{{$json.title}}*\n\n{{$json.summary}}\n\n*Decisions*\n{{$json.decisions}}\n\n*Action items*\n{{$json.actions}}\n\n_Tasks auto-created: {{$json.tasks_created}}_",
+        "otherOptions": {}
+      },
+      "id": "slack-meeting",
+      "name": "Post to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [720, 220]
+    },
+    {
+      "parameters": {
+        "fromEmail": "opsflow@company.com",
+        "toEmail": "ops-leads@company.com",
+        "subject": "=Meeting summary: {{$json.title}}",
+        "text": "={{$json.summary}}\n\nDecisions:\n{{$json.decisions}}\n\nAction items:\n{{$json.actions}}"
+      },
+      "id": "email-meeting",
+      "name": "Email Ops Leads",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [720, 400]
+    }
+  ],
+  "connections": {
+    "Meeting Summary Webhook": {
+      "main": [[{ "node": "Format Digest", "type": "main", "index": 0 }]]
+    },
+    "Format Digest": {
+      "main": [
+        [
+          { "node": "Post to Slack", "type": "main", "index": 0 },
+          { "node": "Email Ops Leads", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "description": "Meeting Transcript → AI Summary → Slack/Email Notification"
+  }
+}

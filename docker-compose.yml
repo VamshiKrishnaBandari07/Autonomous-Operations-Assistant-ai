@@ -1,0 +1,59 @@
+services:
+  backend:
+    build: .
+    container_name: opsflow-backend
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./documents:/app/documents
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+    networks:
+      - opsflow
+
+  frontend:
+    build: .
+    container_name: opsflow-frontend
+    command: streamlit run frontend/streamlit_app.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      BACKEND_API_URL: http://backend:8000
+    env_file:
+      - .env
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - opsflow
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: opsflow-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Europe/London
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./automation/n8n_workflows:/workflows
+    networks:
+      - opsflow
+
+networks:
+  opsflow:
+    driver: bridge
+
+volumes:
+  n8n_data:

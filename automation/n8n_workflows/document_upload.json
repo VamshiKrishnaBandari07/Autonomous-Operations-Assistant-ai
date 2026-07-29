@@ -1,0 +1,75 @@
+{
+  "name": "OpsFlow — Document Upload Processing",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "document-uploaded",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-doc",
+      "name": "Document Uploaded Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.status}}",
+              "operation": "equals",
+              "value2": "indexed"
+            }
+          ]
+        }
+      },
+      "id": "if-indexed",
+      "name": "Indexed Successfully?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "opsflow@company.com",
+        "toEmail": "ops-team@company.com",
+        "subject": "=📚 Knowledge base updated: {{$json.name}}",
+        "text": "=Document '{{$json.name}}' was indexed into OpsFlow AI.\nChunks: {{$json.chunks}}\nDocument ID: {{$json.document_id}}\n\nEmployees can now ask questions about this document in Chat."
+      },
+      "id": "email-notify",
+      "name": "Email Knowledge Team",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [720, 220]
+    },
+    {
+      "parameters": {
+        "channel": "#ops-knowledge",
+        "text": "=⚠️ Document indexing issue for *{{$json.name}}* (id={{$json.document_id}})",
+        "otherOptions": {}
+      },
+      "id": "slack-fail",
+      "name": "Slack Failure Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [720, 400]
+    }
+  ],
+  "connections": {
+    "Document Uploaded Webhook": {
+      "main": [[{ "node": "Indexed Successfully?", "type": "main", "index": 0 }]]
+    },
+    "Indexed Successfully?": {
+      "main": [
+        [{ "node": "Email Knowledge Team", "type": "main", "index": 0 }],
+        [{ "node": "Slack Failure Alert", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "meta": {
+    "description": "Document Upload → AI Processing → Vector Database Update → Notification"
+  }
+}

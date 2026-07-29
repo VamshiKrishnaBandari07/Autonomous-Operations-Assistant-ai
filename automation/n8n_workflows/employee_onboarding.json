@@ -1,0 +1,82 @@
+{
+  "name": "OpsFlow — Employee Onboarding",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "employee-onboarding",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-onboarding",
+      "name": "New Employee Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = items[0].json;\nconst emp = j.employee || {};\nconst checklist = (j.accounts_checklist || []).map((c, i) => ({\n  json: {\n    index: i + 1,\n    item: c.item,\n    system: c.system,\n    owner: c.owner,\n    employee: emp.full_name,\n    email: emp.email,\n    status: 'pending'\n  }\n}));\nreturn checklist.length ? checklist : [{ json: { item: 'No checklist', status: 'empty' } }];"
+      },
+      "id": "build-checklist",
+      "name": "Create Accounts Checklist",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 220]
+    },
+    {
+      "parameters": {
+        "fromEmail": "people-ops@company.com",
+        "toEmail": "={{$json.welcome_email.to || $json.employee.email}}",
+        "subject": "={{$json.welcome_email.subject}}",
+        "text": "={{$json.welcome_email.body}}"
+      },
+      "id": "send-welcome-email",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [440, 420]
+    },
+    {
+      "parameters": {
+        "channel": "#people-ops",
+        "text": "={{$json.slack_message}}\n\n*Accounts checklist*\n{{($json.accounts_checklist || []).map(c => `• ${c.item} (${c.owner})`).join('\\n')}}\n\n*HR tasks*\n{{($json.hr_tasks || []).map(t => `• ${t.title} → ${t.owner}`).join('\\n')}}",
+        "otherOptions": {}
+      },
+      "id": "slack-notify",
+      "name": "Send Slack Message",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [700, 320]
+    },
+    {
+      "parameters": {
+        "channel": "#it-onboarding",
+        "text": "=🧾 Accounts provisioning for *{{$json.employee}}*\\n• {{$json.item}} ({{$json.system}}) — owner: {{$json.owner}}",
+        "otherOptions": {}
+      },
+      "id": "slack-checklist-items",
+      "name": "Post Checklist Items to IT",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [700, 180]
+    }
+  ],
+  "connections": {
+    "New Employee Webhook": {
+      "main": [
+        [
+          { "node": "Create Accounts Checklist", "type": "main", "index": 0 },
+          { "node": "Send Welcome Email", "type": "main", "index": 0 },
+          { "node": "Send Slack Message", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Create Accounts Checklist": {
+      "main": [[{ "node": "Post Checklist Items to IT", "type": "main", "index": 0 }]]
+    }
+  },
+  "meta": {
+    "description": "New employee → welcome email → accounts checklist → HR tasks (from OpsFlow) → Slack notification"
+  }
+}

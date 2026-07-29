@@ -1,0 +1,30 @@
+OpsFlow AI — Sample Operations Policy
+
+1. Incident Response
+All production incidents must be acknowledged within 15 minutes.
+Severity 1 incidents require an incident commander and a status update every 30 minutes.
+Customer-facing outages must be communicated via the status page within 20 minutes.
+
+2. Change Management
+Production deployments require a peer review and approval from the on-call engineer.
+Hotfixes may skip the standard CAB window but must include a post-change review within 48 hours.
+Rollback plans are mandatory for all high-risk changes.
+
+3. Access Control
+Privileged access to production systems is granted via time-bound tickets only.
+Shared admin accounts are prohibited.
+Access reviews for critical systems are performed quarterly.
+
+4. Task Ownership
+Every operational task must have a named owner and a deadline.
+Critical tasks without an owner for more than 4 hours are automatically escalated to the Operations Lead.
+Task priority levels are: low, medium, high, critical.
+
+5. Knowledge Management
+Company policies and runbooks must be stored in OpsFlow AI for RAG-based retrieval.
+Employees should ask OpsFlow before creating duplicate documentation.
+Meeting action items must be captured in the task board within one business day.
+
+6. Reporting
+Weekly operational reports summarise open incidents, task backlog, and automation savings.
+Bottlenecks are flagged when open critical tasks exceed five or when mean acknowledgement time exceeds SLA.

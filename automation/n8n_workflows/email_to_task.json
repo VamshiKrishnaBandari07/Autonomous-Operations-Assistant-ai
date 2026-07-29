@@ -1,0 +1,84 @@
+{
+  "name": "OpsFlow — Email to Task Creation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-ops-intake",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-email",
+      "name": "Email Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/tasks/extract",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"text\": \"{{$json.subject}}\\n{{$json.body}}\"}",
+        "options": {}
+      },
+      "id": "opsflow-extract",
+      "name": "OpsFlow AI Task Extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"message\": \"Create a task from this email:\\nSubject: {{$json.subject}}\\nBody: {{$json.body}}\", \"use_rag\": false}",
+        "options": {}
+      },
+      "id": "opsflow-chat-fallback",
+      "name": "OpsFlow Chat Fallback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [700, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "const tasks = items[0].json;\nconst list = Array.isArray(tasks) ? tasks : (tasks.tasks_created || []);\nreturn list.map(t => ({ json: { title: t.title, owner: t.owner, priority: t.priority, id: t.id } }));"
+      },
+      "id": "normalize-tasks",
+      "name": "Normalize Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#operations",
+        "text": "=✅ OpsFlow created task *{{$json.title}}* (priority: {{$json.priority}}, owner: {{$json.owner}})",
+        "otherOptions": {}
+      },
+      "id": "slack-notify",
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [960, 300]
+    }
+  ],
+  "connections": {
+    "Email Webhook": {
+      "main": [[{ "node": "OpsFlow AI Task Extract", "type": "main", "index": 0 }]]
+    },
+    "OpsFlow AI Task Extract": {
+      "main": [[{ "node": "Normalize Tasks", "type": "main", "index": 0 }]]
+    },
+    "Normalize Tasks": {
+      "main": [[{ "node": "Slack Notification", "type": "main", "index": 0 }]]
+    }
+  },
+  "meta": {
+    "description": "Email → n8n → OpsFlow AI → Task Creation → Slack Notification"
+  }
+}

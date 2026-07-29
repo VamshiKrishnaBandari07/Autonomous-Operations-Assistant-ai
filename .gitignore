@@ -1,0 +1,42 @@
+# OpsFlow AI
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Data & uploads (keep folder structure)
+data/*.db
+data/chroma/**
+!data/.gitkeep
+documents/**
+!documents/.gitkeep
+!documents/sample_ops_policy.txt
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Logs
+*.log
+logs/
