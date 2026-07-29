@@ -8,16 +8,15 @@ pydantic-settings==2.7.0
 
 # Database
 sqlalchemy==2.0.36
-alembic==1.14.0
-aiosqlite==0.20.0
+# Optional PostgreSQL: pip install "psycopg[binary]"
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
 bcrypt==4.2.1
 
 # AI / LLM / RAG
 langchain==0.3.14
+langchain-core==0.3.29
 langchain-openai==0.2.14
 langchain-community==0.3.14
 langchain-text-splitters==0.3.4
@@ -25,7 +24,6 @@ langgraph==0.2.60
 openai==1.58.1
 chromadb==0.5.23
 sentence-transformers==3.3.1
-faiss-cpu==1.9.0.post1
 
 # Document processing
 pypdf==5.1.0

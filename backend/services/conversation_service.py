@@ -41,6 +41,8 @@ def add_message(
     confidence: float = 0.0,
     citations: list[Citation] | None = None,
 ) -> Message:
+    from datetime import datetime, timezone
+
     message = Message(
         conversation_id=conversation.id,
         role=role,
@@ -49,6 +51,7 @@ def add_message(
         confidence=confidence,
         citations=json.dumps([c.model_dump() for c in (citations or [])]),
     )
+    conversation.updated_at = datetime.now(timezone.utc)
     db.add(message)
     db.commit()
     db.refresh(message)

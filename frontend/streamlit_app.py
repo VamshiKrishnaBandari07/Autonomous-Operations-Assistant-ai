@@ -29,6 +29,7 @@ from frontend.api_client import (
     api_post,
     ensure_login,
     get_api_url,
+    logout,
 )
 from frontend.styles import inject_styles, render_hero
 
@@ -81,8 +82,10 @@ with st.sidebar:
 
     with st.expander("Sign in", expanded=not st.session_state.authenticated):
         username = st.text_input("Username", value="admin")
-        password = st.text_input("Password", value="opsflow-admin-change-me", type="password")
-        if st.button("Authenticate", use_container_width=True):
+        password = st.text_input("Password", type="password", placeholder="Enter admin password")
+        st.caption("Default demo user: admin (see .env)")
+        c_login, c_logout = st.columns(2)
+        if c_login.button("Authenticate", use_container_width=True):
             try:
                 ok = ensure_login(username, password)
                 st.session_state.authenticated = ok
@@ -92,10 +95,16 @@ with st.sidebar:
                     st.error("Login failed")
             except Exception as exc:  # noqa: BLE001
                 st.error(f"Cannot reach API: {exc}")
+        if c_logout.button("Log out", use_container_width=True):
+            logout()
+            st.rerun()
 
     try:
         health = api_get("/health")
-        st.success(f"API · {health.get('status', 'ok')}")
+        backend = health.get("vector_backend", health.get("vector_store", "?"))
+        st.success(f"API · {health.get('status', 'ok')} · vec={backend}")
+        if health.get("demo_auth_bypass"):
+            st.caption("Demo auth bypass enabled")
     except Exception:
         st.warning("API offline — start backend on :8000")
 
@@ -118,6 +127,28 @@ def page_chat() -> None:
             st.session_state.messages = []
             st.session_state.conversation_id = None
             st.rerun()
+
+        try:
+            history = api_get("/chat/conversations")
+            if history:
+                labels = {f"#{c['id']} · {c['title'][:40]}": c["id"] for c in history[:12]}
+                chosen = st.selectbox("Past conversations", ["—"] + list(labels.keys()))
+                if chosen != "—" and st.button("Load", use_container_width=True):
+                    convo = api_get(f"/chat/conversations/{labels[chosen]}")
+                    st.session_state.conversation_id = convo["id"]
+                    st.session_state.messages = [
+                        {
+                            "role": m["role"],
+                            "content": m["content"],
+                            "agent_type": m.get("agent_type"),
+                            "confidence": m.get("confidence", 0),
+                            "citations": m.get("citations", []),
+                        }
+                        for m in convo.get("messages", [])
+                    ]
+                    st.rerun()
+        except Exception:
+            pass
 
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
@@ -572,11 +603,12 @@ def page_settings() -> None:
     st.markdown(
         """
         ```
-        Streamlit UI ──► FastAPI ──► Agents (LangChain / LangGraph)
-                              │           ├─ Knowledge (RAG + Chroma)
+        Streamlit UI ──► FastAPI ──► Agents (LangChain; LangGraph optional)
+                              │           ├─ Knowledge (RAG + Chroma/memory)
                               │           ├─ Task
                               │           ├─ Meeting
-                              │           └─ Reporting
+                              │           ├─ Reporting
+                              │           └─ Onboarding
                               ├─ SQLite / PostgreSQL
                               └─ n8n webhooks (Email / Slack / Notify)
         ```

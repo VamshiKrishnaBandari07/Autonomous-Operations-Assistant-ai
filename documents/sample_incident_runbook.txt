@@ -1,0 +1,19 @@
+OpsFlow AI — Incident Response Runbook (Sample)
+
+Severity definitions
+- Sev1: Customer-facing outage or data loss risk. Page on-call immediately.
+- Sev2: Major degradation with workaround. Acknowledge within 15 minutes.
+- Sev3: Limited impact. Triage during business hours.
+
+Acknowledgement SLA
+All production incidents must be acknowledged within 15 minutes of detection.
+Sev1 incidents require an incident commander and a status update every 30 minutes.
+
+Communication
+- Post to #incidents within 5 minutes of acknowledgement.
+- Update the public status page within 20 minutes for customer-facing outages.
+- After resolution, schedule a blameless postmortem within 48 hours.
+
+Rollback
+If a change caused the incident, prefer rollback over forward-fix unless data integrity is at risk.
+Hotfixes still require a peer review within 24 hours.

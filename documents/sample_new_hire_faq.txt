@@ -1,0 +1,16 @@
+OpsFlow AI — New Hire FAQ (Sample)
+
+Q: When do I get my laptop?
+A: IT provisions equipment before day one. Contact #it-onboarding if it has not arrived by your start date.
+
+Q: How do I join Slack?
+A: You receive a workspace invite as part of the accounts checklist during onboarding.
+
+Q: Who is my first point of contact?
+A: Your manager and assigned onboarding buddy. People Ops is available in #people-ops.
+
+Q: What must I complete in week one?
+A: HRIS profile, benefits enrollment start, security training, and orientation session attendance.
+
+Q: Where are company policies?
+A: Ask OpsFlow AI in chat, or browse the knowledge base documents uploaded by Operations.

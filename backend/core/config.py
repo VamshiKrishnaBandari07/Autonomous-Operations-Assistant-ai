@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     chunk_size: int = 800
     chunk_overlap: int = 150
     top_k_retrieval: int = 5
-    rag_score_threshold: float = 0.35
+    rag_score_threshold: float = 0.25
 
     # Uploads
     upload_dir: str = "./documents"
@@ -57,10 +57,12 @@ class Settings(BaseSettings):
     admin_username: str = "admin"
     admin_password: str = "opsflow-admin-change-me"
     admin_email: str = "admin@opsflow.ai"
+    # Local demos only — never enable in production
+    demo_auth_bypass: bool = True
 
     # n8n
     n8n_webhook_base_url: str = "http://localhost:5678/webhook"
-    n8n_enabled: bool = True
+    n8n_enabled: bool = False
     n8n_task_created_webhook: str = "task-created"
     n8n_document_uploaded_webhook: str = "document-uploaded"
     n8n_meeting_summary_webhook: str = "meeting-summary"

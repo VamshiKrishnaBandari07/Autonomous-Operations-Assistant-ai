@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -68,7 +68,7 @@ def update_task(db: Session, task_id: int, payload: TaskUpdate) -> Task | None:
     data = payload.model_dump(exclude_unset=True)
     for key, value in data.items():
         setattr(task, key, value)
-    task.updated_at = datetime.utcnow()
+    task.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(task)
     return task

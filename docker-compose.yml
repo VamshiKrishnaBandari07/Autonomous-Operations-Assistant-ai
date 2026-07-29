@@ -7,9 +7,16 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      # Inside Docker, reach n8n by service name (not localhost)
+      N8N_WEBHOOK_BASE_URL: http://n8n:5678/webhook
+      N8N_ENABLED: "true"
+      VECTOR_STORE: chroma
+      DEMO_AUTH_BYPASS: "false"
     volumes:
       - ./documents:/app/documents
       - ./data:/app/data
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
       interval: 20s
@@ -31,6 +38,7 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    restart: unless-stopped
     networks:
       - opsflow
 
@@ -48,6 +56,7 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - ./automation/n8n_workflows:/workflows
+    restart: unless-stopped
     networks:
       - opsflow
 

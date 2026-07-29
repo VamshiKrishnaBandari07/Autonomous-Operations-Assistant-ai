@@ -3,13 +3,20 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from backend.agents.llm import llm_available
 from backend.core.config import get_settings
 from backend.core.deps import get_current_user, get_db
 from backend.models.schemas import AnalyticsSummary, HealthResponse, SystemSettingsOut
 from backend.models.user import User
+from backend.rag.vector_store import get_vector_store
 from backend.services.analytics_service import build_analytics
 
 router = APIRouter(tags=["System"])
+
+
+def _active_vector_backend() -> str:
+    store = get_vector_store()
+    return type(store).__name__.replace("VectorStore", "").lower()
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -20,7 +27,10 @@ def health() -> HealthResponse:
         app=settings.app_name,
         environment=settings.app_env,
         vector_store=settings.vector_store,
+        vector_backend=_active_vector_backend(),
+        llm_configured=llm_available(),
         n8n_enabled=settings.n8n_enabled,
+        demo_auth_bypass=settings.demo_auth_bypass,
     )
 
 
@@ -47,4 +57,6 @@ def system_settings(
         n8n_enabled=settings.n8n_enabled,
         max_upload_size_mb=settings.max_upload_size_mb,
         allowed_extensions=settings.allowed_extension_list,
+        demo_auth_bypass=settings.demo_auth_bypass,
+        llm_configured=llm_available(),
     )

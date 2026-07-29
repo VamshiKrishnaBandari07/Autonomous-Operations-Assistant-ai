@@ -11,6 +11,12 @@ import streamlit as st
 DEFAULT_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:8000")
 
 
+class APIError(Exception):
+    def __init__(self, message: str, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+
+
 def get_api_url() -> str:
     return st.session_state.get("api_url", DEFAULT_API_URL).rstrip("/")
 
@@ -23,10 +29,22 @@ def get_headers() -> dict[str, str]:
     return headers
 
 
+def _raise_for_response(response: requests.Response) -> None:
+    if response.ok:
+        return
+    detail = None
+    try:
+        payload = response.json()
+        detail = payload.get("detail", payload)
+    except Exception:  # noqa: BLE001
+        detail = response.text
+    raise APIError(f"{response.status_code}: {detail}", status_code=response.status_code)
+
+
 def api_get(path: str, params: Optional[dict] = None) -> Any:
     url = f"{get_api_url()}/api/v1{path}"
     response = requests.get(url, headers=get_headers(), params=params, timeout=60)
-    response.raise_for_status()
+    _raise_for_response(response)
     return response.json()
 
 
@@ -38,7 +56,7 @@ def api_post(path: str, json: Optional[dict] = None, files=None, data=None) -> A
         response = requests.post(url, headers=headers, files=files, data=data, timeout=120)
     else:
         response = requests.post(url, headers=headers, json=json, timeout=120)
-    response.raise_for_status()
+    _raise_for_response(response)
     if response.status_code == 204:
         return None
     return response.json()
@@ -47,14 +65,14 @@ def api_post(path: str, json: Optional[dict] = None, files=None, data=None) -> A
 def api_patch(path: str, json: dict) -> Any:
     url = f"{get_api_url()}/api/v1{path}"
     response = requests.patch(url, headers=get_headers(), json=json, timeout=60)
-    response.raise_for_status()
+    _raise_for_response(response)
     return response.json()
 
 
 def api_delete(path: str) -> None:
     url = f"{get_api_url()}/api/v1{path}"
     response = requests.delete(url, headers=get_headers(), timeout=60)
-    response.raise_for_status()
+    _raise_for_response(response)
 
 
 def ensure_login(username: str, password: str) -> bool:
@@ -66,4 +84,11 @@ def ensure_login(username: str, password: str) -> bool:
         return False
     st.session_state["access_token"] = response.json()["access_token"]
     st.session_state["username"] = username
+    st.session_state["authenticated"] = True
     return True
+
+
+def logout() -> None:
+    st.session_state.pop("access_token", None)
+    st.session_state.pop("username", None)
+    st.session_state["authenticated"] = False

@@ -91,9 +91,10 @@ class OpsOrchestrator:
         if intent == "task":
             result = self.task.run(message)
             created = []
-            for payload in result.get("extracted_tasks", []):
-                assert isinstance(payload, TaskCreate)
-                task = await create_task_and_notify(db, payload, user)
+            for item in result.get("extracted_tasks", []):
+                if not isinstance(item, TaskCreate):
+                    continue
+                task = await create_task_and_notify(db, item, user)
                 created.append(task)
             result["tasks_created"] = created
             result.pop("extracted_tasks", None)

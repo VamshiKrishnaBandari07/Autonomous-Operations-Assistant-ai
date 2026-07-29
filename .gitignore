@@ -20,6 +20,8 @@ data/chroma/**
 documents/**
 !documents/.gitkeep
 !documents/sample_ops_policy.txt
+!documents/sample_incident_runbook.txt
+!documents/sample_new_hire_faq.txt
 
 # IDE / OS
 .idea/

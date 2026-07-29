@@ -87,6 +87,28 @@ class TaskUpdate(BaseModel):
     owner: Optional[str] = None
     deadline: Optional[datetime] = None
 
+    @field_validator("priority")
+    @classmethod
+    def validate_priority(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        allowed = {"low", "medium", "high", "critical"}
+        value = v.lower().strip()
+        if value not in allowed:
+            raise ValueError(f"priority must be one of {allowed}")
+        return value
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        allowed = {"open", "in_progress", "done", "cancelled"}
+        value = v.lower().strip()
+        if value not in allowed:
+            raise ValueError(f"status must be one of {allowed}")
+        return value
+
 
 class TaskOut(BaseModel):
     id: int
@@ -220,6 +242,14 @@ class EmployeeCreate(BaseModel):
     start_date: str = Field(default="", max_length=32)
     manager: str = Field(default="Unassigned", max_length=128)
 
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        value = v.strip().lower()
+        if "@" not in value or "." not in value.split("@")[-1]:
+            raise ValueError("Invalid email address")
+        return value
+
 
 class WelcomeEmailOut(BaseModel):
     subject: str
@@ -294,7 +324,10 @@ class HealthResponse(BaseModel):
     app: str
     environment: str
     vector_store: str
+    vector_backend: str
+    llm_configured: bool
     n8n_enabled: bool
+    demo_auth_bypass: bool
 
 
 class SystemSettingsOut(BaseModel):
@@ -307,3 +340,5 @@ class SystemSettingsOut(BaseModel):
     n8n_enabled: bool
     max_upload_size_mb: int
     allowed_extensions: List[str]
+    demo_auth_bypass: bool
+    llm_configured: bool

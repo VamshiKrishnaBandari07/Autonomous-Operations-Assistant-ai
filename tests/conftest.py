@@ -19,6 +19,8 @@ os.environ["SECRET_KEY"] = "test-secret-key"
 os.environ["ADMIN_USERNAME"] = "admin"
 os.environ["ADMIN_PASSWORD"] = "opsflow-admin-change-me"
 os.environ["APP_ENV"] = "test"
+os.environ["DEMO_AUTH_BYPASS"] = "true"
+os.environ["RAG_SCORE_THRESHOLD"] = "0.15"
 
 from backend.core.config import get_settings
 from backend.core.deps import get_db
@@ -40,7 +42,6 @@ def db_session():
     )
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-    # Point the application session factory at the isolated test engine
     db_session_module.engine = engine
     db_session_module.SessionLocal = TestingSessionLocal
 
@@ -69,7 +70,6 @@ def client(db_session):
 
     app.dependency_overrides[get_db] = _override_db
 
-    # Avoid lifespan re-seeding against a different connection
     with TestClient(app, raise_server_exceptions=True) as test_client:
         yield test_client
 

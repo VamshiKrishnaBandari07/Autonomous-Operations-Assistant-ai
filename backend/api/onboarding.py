@@ -58,9 +58,18 @@ async def create_employee(
 ) -> OnboardingResponse:
     """
     Pipeline:
-      New employee added → welcome email (AI) → n8n accounts checklist
-      → Task Agent assigns HR tasks → Slack notification via n8n
+      New employee added → welcome email (AI) → accounts checklist
+      → Task Agent assigns HR tasks → n8n Slack/email notification
     """
+    existing = (
+        db.query(Employee).filter(Employee.email == payload.email.strip().lower()).first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Employee with email '{payload.email}' already exists",
+        )
+
     result = await onboarding_service.OnboardingService().onboard_employee(
         db,
         current_user,
@@ -78,7 +87,7 @@ async def create_employee(
         pipeline=[
             "1. New employee added",
             "2. AI Agent: create welcome email",
-            "3. n8n: create accounts checklist",
+            "3. Build accounts checklist (n8n provisions)",
             "4. Task Agent: assign HR tasks",
             "5. Notification: send Slack message",
         ],

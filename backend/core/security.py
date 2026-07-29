@@ -11,17 +11,20 @@ from backend.core.config import get_settings
 ALGORITHM = "HS256"
 
 
+def _password_bytes(password: str) -> bytes:
+    """bcrypt accepts at most 72 bytes — truncate consistently for hash + verify."""
+    return password.encode("utf-8")[:72]
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(
-        plain_password.encode("utf-8"),
-        hashed_password.encode("utf-8"),
-    )
+    try:
+        return bcrypt.checkpw(_password_bytes(plain_password), hashed_password.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
 
 
 def hash_password(password: str) -> str:
-    # bcrypt has a 72-byte input limit
-    digest = password.encode("utf-8")[:72]
-    return bcrypt.hashpw(digest, bcrypt.gensalt()).decode("utf-8")
+    return bcrypt.hashpw(_password_bytes(password), bcrypt.gensalt()).decode("utf-8")
 
 
 def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:

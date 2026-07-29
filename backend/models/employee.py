@@ -17,7 +17,7 @@ class Employee(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     full_name: Mapped[str] = mapped_column(String(128), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     role: Mapped[str] = mapped_column(String(128), default="Employee")
     department: Mapped[str] = mapped_column(String(128), default="Operations")
     start_date: Mapped[str] = mapped_column(String(32), default="")

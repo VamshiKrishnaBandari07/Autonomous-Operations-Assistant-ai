@@ -34,8 +34,8 @@ def retrieve(query: str, k: int | None = None) -> list[RetrievedChunk]:
     store = get_vector_store()
     results = store.similarity_search(query, k=top_k)
     threshold = settings.rag_score_threshold
-    filtered = [r for r in results if r.score >= threshold]
-    return filtered or results[: min(2, len(results))]
+    # Honest retrieval: do not return weak matches below threshold
+    return [r for r in results if r.score >= threshold]
 
 
 def chunks_to_citations(chunks: list[RetrievedChunk]) -> list[Citation]:
