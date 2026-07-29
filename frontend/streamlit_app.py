@@ -1,7 +1,16 @@
 """
-OpsFlow AI — Public portfolio demo dashboard.
+OpsFlow AI — Streamlit Operations Dashboard
 
-Launch from project root:
+Pages:
+  1. Chat with Operations AI
+  2. Document Upload
+  3. Task Management
+  4. Meeting Summarisation
+  5. Employee Onboarding
+  6. Analytics Dashboard
+  7. System Settings
+
+Run:
     streamlit run frontend/streamlit_app.py
 """
 
@@ -11,7 +20,6 @@ import os
 from datetime import datetime
 
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
 from api_client import (
@@ -26,16 +34,17 @@ from api_client import (
 from styles import inject_styles, render_hero
 
 st.set_page_config(
-    page_title="OpsFlow AI — Autonomous Operations",
-    page_icon="⚡",
+    page_title="OpsFlow AI",
+    page_icon="⚙️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 inject_styles()
 
+
 # ---------------------------------------------------------------------------
-# Session
+# Session defaults
 # ---------------------------------------------------------------------------
 
 if "api_url" not in st.session_state:
@@ -46,20 +55,6 @@ if "conversation_id" not in st.session_state:
     st.session_state.conversation_id = None
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
-if "onboarding_run" not in st.session_state:
-    st.session_state.onboarding_run = None
-
-
-def _demo_badge() -> None:
-    try:
-        health = api_get("/health")
-        if health.get("demo_mode"):
-            st.markdown(
-                '<div class="demo-banner">PUBLIC DEMO MODE — fictional data · simulated n8n · no real Slack/email required</div>',
-                unsafe_allow_html=True,
-            )
-    except Exception:
-        pass
 
 
 # ---------------------------------------------------------------------------
@@ -68,18 +63,16 @@ def _demo_badge() -> None:
 
 with st.sidebar:
     st.markdown("## OpsFlow AI")
-    st.caption("Autonomous AI Operations Platform")
+    st.caption("AI Operations Automation Platform")
     page = st.radio(
         "Navigate",
         [
-            "Home",
-            "AI Operations Assistant",
-            "Employee Onboarding Demo",
-            "AI Agent Showcase",
-            "Analytics Dashboard",
+            "Chat with Operations AI",
             "Document Upload",
             "Task Management",
             "Meeting Summarisation",
+            "Employee Onboarding",
+            "Analytics Dashboard",
             "System Settings",
         ],
         label_visibility="collapsed",
@@ -89,89 +82,43 @@ with st.sidebar:
 
     with st.expander("Sign in", expanded=not st.session_state.authenticated):
         username = st.text_input("Username", value="admin")
-        password = st.text_input("Password", type="password", placeholder="From ADMIN_PASSWORD in .env")
-        st.caption("Demo login uses env credentials — never hardcode secrets in UI.")
-        c1, c2 = st.columns(2)
-        if c1.button("Sign in", use_container_width=True):
+        password = st.text_input("Password", type="password", placeholder="Enter admin password")
+        st.caption("Default demo user: admin (see .env)")
+        c_login, c_logout = st.columns(2)
+        if c_login.button("Authenticate", use_container_width=True):
             try:
                 ok = ensure_login(username, password)
                 st.session_state.authenticated = ok
-                st.success("Signed in") if ok else st.error("Login failed")
+                if ok:
+                    st.success("Authenticated")
+                else:
+                    st.error("Login failed")
             except Exception as exc:  # noqa: BLE001
-                st.error(f"API unreachable: {exc}")
-        if c2.button("Log out", use_container_width=True):
+                st.error(f"Cannot reach API: {exc}")
+        if c_logout.button("Log out", use_container_width=True):
             logout()
             st.rerun()
 
     try:
         health = api_get("/health")
-        st.success(f"API · {health.get('status')} · demo={health.get('demo_mode')}")
+        backend = health.get("vector_backend", health.get("vector_store", "?"))
+        st.success(f"API · {health.get('status', 'ok')} · vec={backend}")
+        if health.get("demo_auth_bypass"):
+            st.caption("Demo auth bypass enabled")
     except Exception:
-        st.warning("Start backend: uvicorn backend.main:app --port 8000")
+        st.warning("API offline — start backend on :8000")
 
 
 # ---------------------------------------------------------------------------
-# Pages
+# Page: Chat
 # ---------------------------------------------------------------------------
-
-
-def page_home() -> None:
-    _demo_badge()
-    st.markdown(
-        """
-        <div class="ops-hero landing">
-          <p class="eyebrow">Portfolio demo · AI Operations MVP</p>
-          <h1>OpsFlow AI</h1>
-          <h2>Autonomous AI Operations Platform</h2>
-          <p class="lead">An AI-first automation platform using LLM agents, RAG, and workflow
-          automation to eliminate repetitive business processes.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("### What this demo shows recruiters")
-    f1, f2, f3, f4, f5 = st.columns(5)
-    f1.markdown("**AI Agents**\n\nKnowledge · Task · Meeting · Reporting · Onboarding")
-    f2.markdown("**Document Intelligence**\n\nRAG over handbook & policies with citations")
-    f3.markdown("**Workflow Automation**\n\nSimulated n8n → Slack/email style notifications")
-    f4.markdown("**Employee Onboarding**\n\nOne-click welcome email + HR task pack")
-    f5.markdown("**Operational Analytics**\n\nQueries, tasks, hours saved, success rate")
-
-    st.markdown("### Try these first")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.info("**AI Operations Assistant**\n\nAsk: *How many annual leave days do employees receive?*")
-    with c2:
-        st.info("**Employee Onboarding Demo**\n\nOne-click workflow for Aisha Rahman")
-    with c3:
-        st.info("**AI Agent Showcase**\n\nSee each agent’s input → output contract")
-
-    st.markdown("### Architecture")
-    st.code(
-        "User → Streamlit UI → FastAPI → LangChain Agents → RAG Pipeline → Vector DB → n8n Automation",
-        language="text",
-    )
 
 
 def page_chat() -> None:
-    _demo_badge()
     render_hero(
-        "AI Operations Assistant",
-        "Ask policy questions. Answers use RAG with document citations and confidence scores.",
+        "Chat with Operations AI",
+        "Ask about company knowledge, create tasks, or request operational guidance.",
     )
-
-    try:
-        demo = api_get("/demo/status")
-        prompts = demo.get("sample_prompts") or []
-        if prompts:
-            st.caption("Suggested prompts")
-            cols = st.columns(len(prompts))
-            for i, prompt in enumerate(prompts):
-                if cols[i].button(prompt, key=f"prompt_{i}", use_container_width=True):
-                    st.session_state["_pending_prompt"] = prompt
-    except Exception:
-        pass
 
     col_a, col_b = st.columns([3, 1])
     with col_b:
@@ -181,13 +128,36 @@ def page_chat() -> None:
             st.session_state.conversation_id = None
             st.rerun()
 
+        try:
+            history = api_get("/chat/conversations")
+            if history:
+                labels = {f"#{c['id']} · {c['title'][:40]}": c["id"] for c in history[:12]}
+                chosen = st.selectbox("Past conversations", ["—"] + list(labels.keys()))
+                if chosen != "—" and st.button("Load", use_container_width=True):
+                    convo = api_get(f"/chat/conversations/{labels[chosen]}")
+                    st.session_state.conversation_id = convo["id"]
+                    st.session_state.messages = [
+                        {
+                            "role": m["role"],
+                            "content": m["content"],
+                            "agent_type": m.get("agent_type"),
+                            "confidence": m.get("confidence", 0),
+                            "citations": m.get("citations", []),
+                        }
+                        for m in convo.get("messages", [])
+                    ]
+                    st.rerun()
+        except Exception:
+            pass
+
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
             if msg.get("agent_type") and msg["role"] == "assistant":
+                conf = msg.get("confidence", 0)
                 st.markdown(
                     f'<span class="confidence-pill">Agent: {msg["agent_type"]} · '
-                    f'Confidence: {msg.get("confidence", 0):.0%}</span>',
+                    f"Confidence: {conf:.0%}</span>",
                     unsafe_allow_html=True,
                 )
             for cite in msg.get("citations", []):
@@ -197,24 +167,21 @@ def page_chat() -> None:
                     unsafe_allow_html=True,
                 )
 
-    prompt = st.session_state.pop("_pending_prompt", None) or st.chat_input(
-        "e.g. How many annual leave days do employees receive?"
-    )
+    prompt = st.chat_input("Ask OpsFlow AI…")
     if prompt:
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
+
         with st.chat_message("assistant"):
-            with st.spinner("Knowledge Agent retrieving…"):
+            with st.spinner("Thinking…"):
                 try:
-                    data = api_post(
-                        "/chat",
-                        json={
-                            "message": prompt,
-                            "conversation_id": st.session_state.conversation_id,
-                            "use_rag": use_rag,
-                        },
-                    )
+                    payload = {
+                        "message": prompt,
+                        "conversation_id": st.session_state.conversation_id,
+                        "use_rag": use_rag,
+                    }
+                    data = api_post("/chat", json=payload)
                     st.session_state.conversation_id = data["conversation_id"]
                     st.markdown(data["reply"])
                     st.markdown(
@@ -222,14 +189,15 @@ def page_chat() -> None:
                         f'Confidence: {data["confidence"]:.0%}</span>',
                         unsafe_allow_html=True,
                     )
-                    if data.get("citations"):
-                        st.markdown("**Retrieved sources**")
                     for cite in data.get("citations", []):
                         st.markdown(
                             f'<div class="citation"><strong>{cite.get("document_name")}</strong> '
                             f'(score {cite.get("score", 0):.2f})<br/>{cite.get("excerpt")}</div>',
                             unsafe_allow_html=True,
                         )
+                    if data.get("tasks_created"):
+                        st.info(f"Created {len(data['tasks_created'])} task(s).")
+
                     st.session_state.messages.append(
                         {
                             "role": "assistant",
@@ -240,183 +208,313 @@ def page_chat() -> None:
                         }
                     )
                 except Exception as exc:  # noqa: BLE001
+                    st.error(f"Chat failed: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Page: Documents
+# ---------------------------------------------------------------------------
+
+
+def page_documents() -> None:
+    render_hero(
+        "Document Upload",
+        "Ingest PDF, DOCX, or TXT files into the company knowledge base (RAG).",
+    )
+
+    uploaded = st.file_uploader(
+        "Upload company documents",
+        type=["pdf", "docx", "txt"],
+        accept_multiple_files=True,
+    )
+    if uploaded and st.button("Process & Index", type="primary"):
+        for f in uploaded:
+            with st.spinner(f"Indexing {f.name}…"):
+                try:
+                    files = {"file": (f.name, f.getvalue(), f.type or "application/octet-stream")}
+                    result = api_post("/documents/upload", files=files)
+                    st.success(
+                        f"{result['original_name']} → {result['status']} "
+                        f"({result['chunk_count']} chunks)"
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    st.error(f"{f.name}: {exc}")
+
+    st.subheader("Knowledge base")
+    try:
+        data = api_get("/documents")
+        docs = data.get("documents", [])
+        if not docs:
+            st.info("No documents indexed yet. Upload a policy or playbook to get started.")
+        else:
+            for doc in docs:
+                with st.container(border=True):
+                    c1, c2, c3 = st.columns([4, 2, 1])
+                    c1.markdown(f"**{doc['original_name']}**")
+                    c1.caption(doc.get("summary") or "No summary")
+                    c2.write(f"Status: `{doc['status']}`")
+                    c2.write(f"Chunks: {doc['chunk_count']}")
+                    if c3.button("Delete", key=f"del_doc_{doc['id']}"):
+                        api_delete(f"/documents/{doc['id']}")
+                        st.rerun()
+    except Exception as exc:  # noqa: BLE001
+        st.error(f"Could not load documents: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Page: Tasks
+# ---------------------------------------------------------------------------
+
+
+def page_tasks() -> None:
+    render_hero(
+        "Task Management",
+        "Track operational work created manually, from chat, meetings, or n8n.",
+    )
+
+    with st.expander("Create task", expanded=False):
+        with st.form("create_task"):
+            title = st.text_input("Title")
+            description = st.text_area("Description")
+            col1, col2, col3 = st.columns(3)
+            priority = col1.selectbox("Priority", ["low", "medium", "high", "critical"], index=1)
+            owner = col2.text_input("Owner", "Unassigned")
+            deadline = col3.date_input("Deadline", value=None)
+            submitted = st.form_submit_button("Create")
+            if submitted and title.strip():
+                payload = {
+                    "title": title,
+                    "description": description,
+                    "priority": priority,
+                    "owner": owner,
+                    "deadline": datetime.combine(deadline, datetime.min.time()).isoformat()
+                    if deadline
+                    else None,
+                    "source": "manual",
+                }
+                try:
+                    api_post("/tasks", json=payload)
+                    st.success("Task created")
+                    st.rerun()
+                except Exception as exc:  # noqa: BLE001
                     st.error(str(exc))
 
+    status_filter = st.selectbox(
+        "Filter by status",
+        ["all", "open", "in_progress", "done", "cancelled"],
+        index=0,
+    )
+    try:
+        params = {} if status_filter == "all" else {"status": status_filter}
+        tasks = api_get("/tasks", params=params)
+        if not tasks:
+            st.info("No tasks yet.")
+        for task in tasks:
+            with st.container(border=True):
+                c1, c2, c3, c4 = st.columns([4, 2, 2, 2])
+                c1.markdown(f"**{task['title']}**")
+                c1.caption(task.get("description") or "")
+                c2.write(f"Priority: `{task['priority']}`")
+                c2.write(f"Owner: {task['owner']}")
+                c3.write(f"Status: `{task['status']}`")
+                c3.write(f"Source: {task['source']}")
+                new_status = c4.selectbox(
+                    "Update",
+                    ["open", "in_progress", "done", "cancelled"],
+                    index=["open", "in_progress", "done", "cancelled"].index(task["status"]),
+                    key=f"status_{task['id']}",
+                    label_visibility="collapsed",
+                )
+                if c4.button("Save", key=f"save_{task['id']}"):
+                    api_patch(f"/tasks/{task['id']}", json={"status": new_status})
+                    st.rerun()
+                if c4.button("Delete", key=f"del_task_{task['id']}"):
+                    api_delete(f"/tasks/{task['id']}")
+                    st.rerun()
+    except Exception as exc:  # noqa: BLE001
+        st.error(f"Could not load tasks: {exc}")
 
-def page_onboarding_demo() -> None:
-    _demo_badge()
+
+# ---------------------------------------------------------------------------
+# Page: Meetings
+# ---------------------------------------------------------------------------
+
+
+def page_meetings() -> None:
     render_hero(
-        "Employee Onboarding Demo",
-        "One-click workflow: employee → welcome email → simulated n8n → HR tasks → notification.",
+        "Meeting Summarisation",
+        "Paste a transcript to extract summary, decisions, and action items.",
+    )
+
+    title = st.text_input("Meeting title", "Weekly Operations Sync")
+    create_tasks = st.toggle("Auto-create tasks from action items", value=True)
+    transcript = st.text_area(
+        "Transcript",
+        height=280,
+        placeholder="Paste meeting transcript here…",
+    )
+    if st.button("Summarise", type="primary", disabled=len(transcript.strip()) < 20):
+        with st.spinner("Meeting Agent analysing transcript…"):
+            try:
+                result = api_post(
+                    "/meetings/summarise",
+                    json={
+                        "transcript": transcript,
+                        "title": title,
+                        "create_tasks": create_tasks,
+                    },
+                )
+                st.markdown(
+                    f'<span class="confidence-pill">Confidence: {result["confidence"]:.0%}</span>',
+                    unsafe_allow_html=True,
+                )
+                st.subheader("Summary")
+                st.write(result["summary"])
+                st.subheader("Key decisions")
+                for d in result["key_decisions"]:
+                    st.markdown(f"- {d}")
+                st.subheader("Action items")
+                for item in result["action_items"]:
+                    st.markdown(
+                        f"- **{item['title']}** · owner={item['owner']} · "
+                        f"priority={item['priority']} · deadline={item.get('deadline')}"
+                    )
+                if result.get("tasks_created"):
+                    st.success(f"Created {len(result['tasks_created'])} task(s) and notified n8n.")
+            except Exception as exc:  # noqa: BLE001
+                st.error(str(exc))
+
+
+# ---------------------------------------------------------------------------
+# Page: Employee Onboarding
+# ---------------------------------------------------------------------------
+
+
+def page_onboarding() -> None:
+    render_hero(
+        "Employee Onboarding",
+        "New hire → welcome email → n8n accounts checklist → HR tasks → Slack.",
     )
 
     st.markdown(
         """
-        ```
-        Employee Added → AI Agent → Welcome Email → n8n Simulation → HR Tasks → Notification
-        ```
+        **Automation pipeline**
+        1. Trigger: new employee added  
+        2. AI Agent: create welcome email  
+        3. n8n: create accounts checklist  
+        4. Task Agent: assign HR tasks  
+        5. Notification: send Slack message  
         """
     )
 
-    with st.form("onboarding_demo"):
-        c1, c2, c3 = st.columns(3)
-        name = c1.text_input("Name", value="Aisha Rahman")
-        role = c2.text_input("Role", value="Operations Analyst")
-        department = c3.text_input("Department", value="Operations")
-        email = st.text_input(
-            "Work email (demo domain)",
-            value=f"aisha.rahman+{datetime.utcnow().strftime('%H%M%S')}@opsflow-demo.ai",
+    with st.form("new_employee"):
+        c1, c2 = st.columns(2)
+        full_name = c1.text_input("Full name", placeholder="Aisha Rahman")
+        email = c2.text_input("Work email", placeholder="aisha.rahman@company.com")
+        role = c1.text_input("Role", value="Operations Analyst")
+        department = c2.text_input("Department", value="Operations")
+        start_date = c1.text_input("Start date (YYYY-MM-DD)", value="")
+        manager = c2.text_input("Manager", value="Unassigned")
+        submitted = st.form_submit_button("Add employee & run pipeline", type="primary")
+
+        if submitted:
+            if len(full_name.strip()) < 2 or "@" not in email:
+                st.error("Provide a valid name and email.")
+            else:
+                with st.spinner("Running onboarding pipeline…"):
+                    try:
+                        result = api_post(
+                            "/onboarding/employees",
+                            json={
+                                "full_name": full_name.strip(),
+                                "email": email.strip(),
+                                "role": role.strip(),
+                                "department": department.strip(),
+                                "start_date": start_date.strip(),
+                                "manager": manager.strip(),
+                            },
+                        )
+                        st.session_state["last_onboarding"] = result
+                        st.success("Onboarding pipeline completed")
+                    except Exception as exc:  # noqa: BLE001
+                        st.error(str(exc))
+
+    result = st.session_state.get("last_onboarding")
+    if result:
+        st.subheader("Pipeline status")
+        for step in result.get("pipeline", []):
+            st.markdown(f"- {step}")
+        st.caption(
+            f"n8n triggered: `{result.get('n8n_triggered')}` · "
+            f"confidence: {result.get('confidence', 0):.0%}"
         )
-        manager = st.text_input("Manager", value="Jordan Lee")
-        start = st.text_input("Start date", value="2026-08-04")
-        run = st.form_submit_button("Run Employee Onboarding Workflow", type="primary")
 
-    if run:
-        with st.spinner("Running onboarding pipeline…"):
-            try:
-                result = api_post(
-                    "/onboarding/employees",
-                    json={
-                        "full_name": name.strip(),
-                        "email": email.strip().lower(),
-                        "role": role.strip(),
-                        "department": department.strip(),
-                        "start_date": start.strip(),
-                        "manager": manager.strip(),
-                    },
-                )
-                st.session_state.onboarding_run = result
-            except Exception as exc:  # noqa: BLE001
-                st.error(str(exc))
-
-    result = st.session_state.onboarding_run
-    if not result:
-        st.caption("Click the button above to generate a full demo run.")
-        return
-
-    steps = result.get("pipeline") or []
-    for step in steps:
-        st.markdown(f"- {step}")
-
-    st.success("Workflow completed" + (" · n8n simulated" if result.get("n8n_triggered") else ""))
-
-    left, right = st.columns(2)
-    with left:
-        st.subheader("Welcome email generated")
+        st.subheader("Welcome email")
         welcome = result.get("welcome_email", {})
-        st.markdown(f"**Subject:** {welcome.get('subject')}")
-        st.text_area("Email body", welcome.get("body", ""), height=240, disabled=True)
-        st.caption(f"Confidence: {welcome.get('confidence', result.get('confidence', 0)):.0%}")
+        st.markdown(f"**Subject:** {welcome.get('subject', '')}")
+        st.text_area("Body", welcome.get("body", ""), height=220, disabled=True)
 
-    with right:
-        st.subheader("Accounts checklist (n8n simulation)")
+        st.subheader("Accounts checklist (n8n)")
         for item in result.get("accounts_checklist", []):
             st.markdown(
-                f"- **{item.get('item')}** · {item.get('system')} · owner `{item.get('owner')}`"
+                f"- **{item.get('item')}** · {item.get('system')} · owner=`{item.get('owner')}`"
             )
-        st.subheader("HR tasks created")
+
+        st.subheader("HR tasks assigned")
         for task in result.get("tasks_created", []):
             st.markdown(
-                f"- **{task.get('title')}** · {task.get('owner')} · `{task.get('priority')}`"
+                f"- **{task.get('title')}** · {task.get('owner')} · "
+                f"`{task.get('priority')}` · source=`{task.get('source')}`"
             )
 
-    st.subheader("Notification sent")
-    st.info(result.get("slack_message", "[Demo] Notification simulated"))
+        st.info(result.get("slack_message", ""))
+
+    st.subheader("Recent employees")
+    try:
+        employees = api_get("/onboarding/employees")
+        if not employees:
+            st.caption("No employees onboarded yet.")
+        for emp in employees[:10]:
+            with st.container(border=True):
+                st.markdown(
+                    f"**{emp['full_name']}** · {emp['role']} · {emp['department']} · "
+                    f"`{emp['status']}`"
+                )
+                st.caption(f"{emp['email']} · manager={emp['manager']} · start={emp['start_date']}")
+    except Exception as exc:  # noqa: BLE001
+        st.error(f"Could not load employees: {exc}")
 
 
-def page_agent_showcase() -> None:
-    _demo_badge()
-    render_hero(
-        "AI Agent Showcase",
-        "Each specialist agent has a clear contract — input, reasoning, and business output.",
-    )
-
-    agents = [
-        {
-            "name": "Knowledge Agent",
-            "role": "Document search + RAG answers",
-            "input": "How many annual leave days do employees receive?",
-            "output": "Full-time employees receive 25 annual leave days… (citations: employee_handbook.txt)",
-        },
-        {
-            "name": "Task Agent",
-            "role": "Creates operational tasks",
-            "input": "Create a high priority task for IT to refresh VPN certificates by Friday",
-            "output": "Task: Refresh VPN certificates · owner=IT · priority=high · deadline=+days",
-        },
-        {
-            "name": "Meeting Agent",
-            "role": "Generates summaries + action items",
-            "input": "Paste weekly ops transcript",
-            "output": "Summary · decisions · action items auto-converted to tasks",
-        },
-        {
-            "name": "Reporting Agent",
-            "role": "Creates operational insights",
-            "input": "Generate weekly operations report",
-            "output": "Executive summary · bottlenecks · trends · markdown report body",
-        },
-        {
-            "name": "Onboarding Agent",
-            "role": "Welcome email + checklist for new hires",
-            "input": "Aisha Rahman · Operations Analyst",
-            "output": "Welcome email draft · accounts checklist · HR task pack · Slack notify",
-        },
-    ]
-
-    for agent in agents:
-        with st.container(border=True):
-            st.markdown(f"### {agent['name']}")
-            st.caption(agent["role"])
-            c1, c2 = st.columns(2)
-            c1.markdown(f"**Example input**\n\n`{agent['input']}`")
-            c2.markdown(f"**Example output**\n\n{agent['output']}")
-
-    st.markdown("### Live try")
-    if st.button("Summarise sample meeting transcript"):
-        try:
-            transcript = open("demo_data/sample_meeting_transcript.txt", encoding="utf-8").read()
-            result = api_post(
-                "/meetings/summarise",
-                json={
-                    "transcript": transcript,
-                    "title": "Weekly Operations Sync (Demo)",
-                    "create_tasks": True,
-                },
-            )
-            st.markdown(result["summary"])
-            st.write("Decisions:", result["key_decisions"])
-            st.write("Action items:", result["action_items"])
-        except Exception as exc:  # noqa: BLE001
-            st.error(str(exc))
+# ---------------------------------------------------------------------------
+# Page: Analytics
+# ---------------------------------------------------------------------------
 
 
 def page_analytics() -> None:
-    _demo_badge()
     render_hero(
         "Analytics Dashboard",
-        "Business-impact metrics for AI operations — queries, automation, and time saved.",
+        "Measure queries solved, time saved, and operational request patterns.",
     )
     try:
-        data = api_get("/demo/metrics")
+        data = api_get("/analytics")
     except Exception as exc:  # noqa: BLE001
-        st.error(str(exc))
+        st.error(f"Analytics unavailable: {exc}")
         return
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("AI Queries Completed", data["ai_queries_completed"])
-    m2.metric("Automated Tasks Created", data["automated_tasks_created"])
-    m3.metric("Estimated Hours Saved", f"{data['estimated_hours_saved']:.0f} hrs")
-    m4.metric("Workflow Success Rate", f"{data['workflow_success_rate']:.0f}%")
+    m1.metric("Queries solved", data["total_queries"])
+    m2.metric("Hours saved (est.)", data["estimated_hours_saved"])
+    m3.metric("Open tasks", data["open_tasks"])
+    m4.metric("Avg confidence", f"{data['avg_confidence']:.0%}")
 
-    st.caption(
-        f"Live session activity: {data['live_total_queries']} queries · "
-        f"{data['live_total_tasks']} tasks"
-        + (" · demo baseline blended for portfolio showcase" if data.get("demo_mode") else "")
-    )
+    m5, m6, m7 = st.columns(3)
+    m5.metric("Documents indexed", data["documents_indexed"])
+    m6.metric("Tasks total", data["total_tasks"])
+    m7.metric("Reports generated", data["reports_generated"])
 
     left, right = st.columns(2)
     with left:
+        st.subheader("Most common requests")
         common = data.get("common_request_types") or []
         if common:
             fig = px.bar(
@@ -424,193 +522,111 @@ def page_analytics() -> None:
                 x="type",
                 y="count",
                 color="count",
-                color_continuous_scale=["#D5E6F2", "#0B1F33"],
-                title="Most common request types",
+                color_continuous_scale=["#D5E6F2", "#1A4A6E"],
             )
-            fig.update_layout(height=340, margin=dict(l=10, r=10, t=40, b=10))
+            fig.update_layout(showlegend=False, margin=dict(l=10, r=10, t=20, b=10), height=320)
             st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No query history yet.")
+
     with right:
+        st.subheader("Queries by agent")
         by_agent = data.get("queries_by_agent") or {}
         if by_agent:
             fig2 = px.pie(
                 names=list(by_agent.keys()),
                 values=list(by_agent.values()),
-                title="Queries by agent",
-                color_discrete_sequence=["#0B1F33", "#1A4A6E", "#2A6F8F", "#5FA8C8", "#9BC8DC"],
+                color_discrete_sequence=["#0B1F33", "#1A4A6E", "#2A6F8F", "#5FA8C8"],
             )
-            fig2.update_layout(height=340, margin=dict(l=10, r=10, t=40, b=10))
+            fig2.update_layout(margin=dict(l=10, r=10, t=20, b=10), height=320)
             st.plotly_chart(fig2, use_container_width=True)
+        else:
+            st.info("No agent activity yet.")
 
-    status = data.get("tasks_by_status") or {}
-    if status:
-        fig3 = go.Figure(
-            data=[go.Bar(x=list(status.keys()), y=list(status.values()), marker_color="#1A4A6E")]
-        )
-        fig3.update_layout(title="Tasks by status", height=300, margin=dict(l=10, r=10, t=40, b=10))
-        st.plotly_chart(fig3, use_container_width=True)
-
-    if data.get("demo_highlights"):
-        st.subheader("Why this matters")
-        for h in data["demo_highlights"]:
-            st.markdown(f"- {h}")
-
-    if st.button("Generate weekly operations report"):
-        with st.spinner("Reporting Agent…"):
+    st.subheader("Generate weekly report")
+    if st.button("Run Reporting Agent", type="primary"):
+        with st.spinner("Generating report…"):
             try:
                 report = api_post("/reports/generate", json={"report_type": "weekly"})
                 st.markdown(f"### {report['title']}")
                 st.write(report["summary"])
                 st.markdown(report["content"])
+                st.write("Bottlenecks:", report.get("bottlenecks"))
+                st.write("Trends:", report.get("trends"))
             except Exception as exc:  # noqa: BLE001
                 st.error(str(exc))
 
 
-def page_documents() -> None:
-    _demo_badge()
-    render_hero("Document Upload", "Ingest PDF / DOCX / TXT into the company knowledge base.")
-    try:
-        demo = api_get("/demo/status")
-        if demo.get("documents"):
-            st.success(
-                "Demo documents loaded: "
-                + ", ".join(d["name"] for d in demo["documents"] if d.get("status") == "indexed")
-            )
-    except Exception:
-        pass
-
-    uploaded = st.file_uploader("Upload documents", type=["pdf", "docx", "txt"], accept_multiple_files=True)
-    if uploaded and st.button("Process & Index", type="primary"):
-        for f in uploaded:
-            try:
-                files = {"file": (f.name, f.getvalue(), f.type or "application/octet-stream")}
-                result = api_post("/documents/upload", files=files)
-                st.success(f"{result['original_name']} → {result['status']} ({result['chunk_count']} chunks)")
-            except Exception as exc:  # noqa: BLE001
-                st.error(f"{f.name}: {exc}")
-
-    try:
-        data = api_get("/documents")
-        for doc in data.get("documents", []):
-            with st.container(border=True):
-                c1, c2, c3 = st.columns([4, 2, 1])
-                c1.markdown(f"**{doc['original_name']}**")
-                c1.caption(doc.get("summary") or "")
-                c2.write(f"`{doc['status']}` · {doc['chunk_count']} chunks")
-                if c3.button("Delete", key=f"del_doc_{doc['id']}"):
-                    api_delete(f"/documents/{doc['id']}")
-                    st.rerun()
-    except Exception as exc:  # noqa: BLE001
-        st.error(str(exc))
-
-
-def page_tasks() -> None:
-    _demo_badge()
-    render_hero("Task Management", "Operational work from chat, meetings, onboarding, or manual entry.")
-    with st.expander("Create task"):
-        with st.form("create_task"):
-            title = st.text_input("Title")
-            description = st.text_area("Description")
-            col1, col2 = st.columns(2)
-            priority = col1.selectbox("Priority", ["low", "medium", "high", "critical"], index=1)
-            owner = col2.text_input("Owner", "Unassigned")
-            if st.form_submit_button("Create") and title.strip():
-                api_post(
-                    "/tasks",
-                    json={
-                        "title": title,
-                        "description": description,
-                        "priority": priority,
-                        "owner": owner,
-                        "source": "manual",
-                    },
-                )
-                st.rerun()
-
-    try:
-        tasks = api_get("/tasks")
-        for task in tasks:
-            with st.container(border=True):
-                c1, c2, c3 = st.columns([4, 2, 2])
-                c1.markdown(f"**{task['title']}**")
-                c1.caption(task.get("description") or "")
-                c2.write(f"`{task['priority']}` · {task['owner']}")
-                c3.write(f"`{task['status']}` · {task['source']}")
-                new_status = c3.selectbox(
-                    "Status",
-                    ["open", "in_progress", "done", "cancelled"],
-                    index=["open", "in_progress", "done", "cancelled"].index(task["status"]),
-                    key=f"st_{task['id']}",
-                    label_visibility="collapsed",
-                )
-                if c3.button("Save", key=f"save_{task['id']}"):
-                    api_patch(f"/tasks/{task['id']}", json={"status": new_status})
-                    st.rerun()
-    except Exception as exc:  # noqa: BLE001
-        st.error(str(exc))
-
-
-def page_meetings() -> None:
-    _demo_badge()
-    render_hero("Meeting Summarisation", "Transcript → summary, decisions, action items, tasks.")
-    if st.button("Load sample transcript"):
-        try:
-            st.session_state["meeting_transcript"] = open(
-                "demo_data/sample_meeting_transcript.txt", encoding="utf-8"
-            ).read()
-        except Exception as exc:  # noqa: BLE001
-            st.error(str(exc))
-
-    title = st.text_input("Meeting title", "Weekly Operations Sync")
-    create_tasks = st.toggle("Auto-create tasks", value=True)
-    transcript = st.text_area(
-        "Transcript",
-        value=st.session_state.get("meeting_transcript", ""),
-        height=260,
-    )
-    if st.button("Summarise", type="primary", disabled=len(transcript.strip()) < 20):
-        with st.spinner("Meeting Agent…"):
-            try:
-                result = api_post(
-                    "/meetings/summarise",
-                    json={"transcript": transcript, "title": title, "create_tasks": create_tasks},
-                )
-                st.write(result["summary"])
-                st.write("Decisions", result["key_decisions"])
-                st.write("Action items", result["action_items"])
-                if result.get("tasks_created"):
-                    st.success(f"Created {len(result['tasks_created'])} tasks")
-            except Exception as exc:  # noqa: BLE001
-                st.error(str(exc))
+# ---------------------------------------------------------------------------
+# Page: Settings
+# ---------------------------------------------------------------------------
 
 
 def page_settings() -> None:
-    _demo_badge()
-    render_hero("System Settings", "Runtime configuration — secrets stay in environment variables.")
-    st.write(f"API: `{get_api_url()}`")
+    render_hero(
+        "System Settings",
+        "Runtime configuration for models, retrieval, uploads, and automation.",
+    )
+    st.write(f"Connected API: `{get_api_url()}`")
     try:
         settings = api_get("/settings")
-        demo = api_get("/demo/status")
-        st.json(settings)
-        if demo.get("safety_notes"):
-            st.subheader("Demo safety")
-            for note in demo["safety_notes"]:
-                st.markdown(f"- {note}")
-        if st.button("Re-seed demo data"):
-            api_post("/demo/seed", json={})
-            st.success("Demo data re-seeded")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**AI / RAG**")
+            st.json(
+                {
+                    "openai_model": settings["openai_model"],
+                    "embedding_model": settings["embedding_model"],
+                    "vector_store": settings["vector_store"],
+                    "chunk_size": settings["chunk_size"],
+                    "top_k_retrieval": settings["top_k_retrieval"],
+                }
+            )
+        with c2:
+            st.markdown("**Platform**")
+            st.json(
+                {
+                    "app_name": settings["app_name"],
+                    "n8n_enabled": settings["n8n_enabled"],
+                    "max_upload_size_mb": settings["max_upload_size_mb"],
+                    "allowed_extensions": settings["allowed_extensions"],
+                }
+            )
+        st.info(
+            "Change values via `.env` and restart services. "
+            "See `.env.example` for all supported keys."
+        )
     except Exception as exc:  # noqa: BLE001
-        st.error(str(exc))
+        st.error(f"Could not load settings: {exc}")
 
+    st.subheader("Architecture")
+    st.markdown(
+        """
+        ```
+        Streamlit UI ──► FastAPI ──► Agents (LangChain; LangGraph optional)
+                              │           ├─ Knowledge (RAG + Chroma/memory)
+                              │           ├─ Task
+                              │           ├─ Meeting
+                              │           ├─ Reporting
+                              │           └─ Onboarding
+                              ├─ SQLite / PostgreSQL
+                              └─ n8n webhooks (Email / Slack / Notify)
+        ```
+        """
+    )
+
+
+# ---------------------------------------------------------------------------
+# Router
+# ---------------------------------------------------------------------------
 
 PAGES = {
-    "Home": page_home,
-    "AI Operations Assistant": page_chat,
-    "Employee Onboarding Demo": page_onboarding_demo,
-    "AI Agent Showcase": page_agent_showcase,
-    "Analytics Dashboard": page_analytics,
+    "Chat with Operations AI": page_chat,
     "Document Upload": page_documents,
     "Task Management": page_tasks,
     "Meeting Summarisation": page_meetings,
+    "Employee Onboarding": page_onboarding,
+    "Analytics Dashboard": page_analytics,
     "System Settings": page_settings,
 }
 
