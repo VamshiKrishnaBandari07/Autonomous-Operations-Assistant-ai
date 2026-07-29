@@ -22,7 +22,7 @@ from datetime import datetime
 import plotly.express as px
 import streamlit as st
 
-from frontend.api_client import (
+from api_client import (
     api_delete,
     api_get,
     api_patch,
@@ -31,7 +31,7 @@ from frontend.api_client import (
     get_api_url,
     logout,
 )
-from frontend.styles import inject_styles, render_hero
+from styles import inject_styles, render_hero
 
 st.set_page_config(
     page_title="OpsFlow AI",
