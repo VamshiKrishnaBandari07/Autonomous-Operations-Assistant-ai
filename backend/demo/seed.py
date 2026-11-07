@@ -97,6 +97,31 @@ def list_workflow_simulations(limit: int = 10) -> list[dict[str, Any]]:
         return []
 
 
+def _load_demo_text(src: Path, ext: str) -> str:
+    """Load extractable text for a demo document."""
+    if ext == "pdf":
+        txt_sibling = demo_data_dir() / "company_policy.txt"
+        if txt_sibling.exists():
+            return txt_sibling.read_text(encoding="utf-8")
+        return extract_text(str(src), "pdf")
+    return extract_text(str(src), ext)
+
+
+def _rehydrate_vectors(doc: Document, text: str) -> tuple[int, str]:
+    """Re-index document text into the active vector store.
+
+    Required after process restart when VECTOR_STORE=memory (vectors are not
+    persisted). Safe for Chroma via delete-then-add.
+    """
+    from backend.rag.vector_store import get_vector_store
+
+    try:
+        get_vector_store().delete_by_document_id(doc.id)
+    except Exception:  # noqa: BLE001
+        logger.debug("No existing vectors to clear for document_id=%s", doc.id)
+    return index_document_text(doc.id, doc.original_name, text)
+
+
 def _copy_and_index_doc(db: Session, owner: User, filename: str) -> Document | None:
     settings = get_settings()
     src = demo_data_dir() / filename
@@ -104,21 +129,41 @@ def _copy_and_index_doc(db: Session, owner: User, filename: str) -> Document | N
         logger.warning("Demo file missing: %s", src)
         return None
 
-    existing = (
-        db.query(Document)
-        .filter(Document.original_name == filename, Document.status == "indexed")
-        .first()
-    )
-    if existing:
-        return existing
-
     upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(parents=True, exist_ok=True)
     dest_name = f"demo_{filename}"
     dest = upload_dir / dest_name
-    shutil.copy2(src, dest)
+    if not dest.exists():
+        shutil.copy2(src, dest)
 
     ext = src.suffix.lower().lstrip(".")
+    text = _load_demo_text(src if ext != "pdf" else dest, ext)
+
+    existing = (
+        db.query(Document)
+        .filter(Document.original_name == filename)
+        .order_by(Document.id.desc())
+        .first()
+    )
+    if existing:
+        try:
+            chunk_count, summary = _rehydrate_vectors(existing, text)
+            existing.chunk_count = chunk_count
+            existing.summary = summary or existing.summary
+            existing.status = "indexed"
+            existing.indexed_at = datetime.now(timezone.utc)
+            if not Path(existing.file_path).exists():
+                existing.file_path = str(dest)
+                existing.filename = dest_name
+            db.commit()
+            db.refresh(existing)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Demo re-index failed: %s", filename)
+            existing.status = "failed"
+            existing.summary = f"Demo indexing failed: {exc}"
+            db.commit()
+        return existing
+
     doc = Document(
         filename=dest_name,
         original_name=filename,
@@ -134,13 +179,7 @@ def _copy_and_index_doc(db: Session, owner: User, filename: str) -> Document | N
     db.refresh(doc)
 
     try:
-        # Prefer sibling .txt for PDF so RAG works without PDF text extraction issues
-        if ext == "pdf":
-            txt_sibling = demo_data_dir() / "company_policy.txt"
-            text = txt_sibling.read_text(encoding="utf-8") if txt_sibling.exists() else extract_text(str(dest), "pdf")
-        else:
-            text = extract_text(str(dest), ext)
-        chunk_count, summary = index_document_text(doc.id, doc.original_name, text)
+        chunk_count, summary = _rehydrate_vectors(doc, text)
         doc.chunk_count = chunk_count
         doc.summary = summary
         doc.status = "indexed"

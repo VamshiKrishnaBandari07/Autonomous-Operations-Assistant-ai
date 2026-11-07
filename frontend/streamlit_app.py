@@ -279,7 +279,8 @@ def page_tasks() -> None:
             col1, col2, col3 = st.columns(3)
             priority = col1.selectbox("Priority", ["low", "medium", "high", "critical"], index=1)
             owner = col2.text_input("Owner", "Unassigned")
-            deadline = col3.date_input("Deadline", value=None)
+            set_deadline = col3.checkbox("Set deadline", value=False)
+            deadline = col3.date_input("Deadline") if set_deadline else None
             submitted = st.form_submit_button("Create")
             if submitted and title.strip():
                 payload = {

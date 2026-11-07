@@ -37,22 +37,36 @@ class InMemoryVectorStore:
             self._docs.append({"id": doc_id, "text": text, "metadata": meta})
 
     def similarity_search(self, query: str, k: int = 5) -> list[RetrievedChunk]:
-        # Token-overlap heuristic (no embeddings required)
-        q_tokens = set(query.lower().split())
+        # Improved token-overlap heuristic for offline demos (no embeddings required)
+        stop = {
+            "a", "an", "the", "is", "are", "do", "does", "how", "many", "what",
+            "when", "where", "who", "of", "to", "in", "for", "and", "or", "on",
+        }
+        q_tokens = {t.strip("?,.!") for t in query.lower().split() if t.strip("?,.!") not in stop}
+        if not q_tokens:
+            q_tokens = {t.strip("?,.!") for t in query.lower().split()}
         scored: list[RetrievedChunk] = []
         for doc in self._docs:
-            tokens = set(doc["text"].lower().split())
+            text_l = doc["text"].lower()
+            tokens = set(text_l.split())
             if not tokens:
                 continue
             overlap = len(q_tokens & tokens) / max(len(q_tokens), 1)
+            # Soft boost when multiple query terms appear near each other
+            phrase_hits = sum(1 for t in q_tokens if t in text_l)
+            score = min(1.0, 0.7 * overlap + 0.3 * (phrase_hits / max(len(q_tokens), 1)))
             scored.append(
-                RetrievedChunk(content=doc["text"], metadata=doc["metadata"], score=float(overlap))
+                RetrievedChunk(content=doc["text"], metadata=doc["metadata"], score=float(score))
             )
         scored.sort(key=lambda x: x.score, reverse=True)
         return scored[:k]
 
     def delete_by_document_id(self, document_id: int) -> None:
-        self._docs = [d for d in self._docs if d["metadata"].get("document_id") != document_id]
+        self._docs = [
+            d
+            for d in self._docs
+            if str(d["metadata"].get("document_id")) != str(document_id)
+        ]
 
 
 class ChromaVectorStore:

@@ -75,6 +75,36 @@ def build_context_block(chunks: list[RetrievedChunk]) -> str:
     return "\n\n".join(blocks)
 
 
+def _offline_extractive_answer(query: str, chunks: list[RetrievedChunk], citations: list[Citation]) -> str:
+    """Build a readable offline answer from top retrieved sentences."""
+    stop = {"a", "an", "the", "is", "are", "do", "does", "how", "many", "what", "of", "to", "in", "for"}
+    q_tokens = {t.strip("?,.!") for t in query.lower().split() if t.strip("?,.!") not in stop}
+    sentences: list[tuple[float, str, str]] = []
+    for chunk in chunks:
+        name = str((chunk.metadata or {}).get("document_name", "document"))
+        for raw in chunk.content.replace("\n", " ").split("."):
+            sentence = raw.strip()
+            if len(sentence) < 20:
+                continue
+            tokens = set(sentence.lower().split())
+            score = len(q_tokens & tokens) / max(len(q_tokens), 1)
+            if score > 0:
+                sentences.append((score, name, sentence))
+    sentences.sort(key=lambda x: x[0], reverse=True)
+    if sentences:
+        top = sentences[:3]
+        bullets = "\n".join(f"- ({name}) {text}." for _, name, text in top)
+        return (
+            f"Based on company documents (offline demo mode):\n\n{bullets}\n\n"
+            "Sources are listed below. Set OPENAI_API_KEY for full LLM answers."
+        )
+    return (
+        "Based on retrieved company documents:\n\n"
+        + "\n\n".join(f"- ({c.document_name}) {c.excerpt}" for c in citations[:3])
+        + "\n\n[Offline mode: set OPENAI_API_KEY for full LLM answers.]"
+    )
+
+
 def answer_with_rag(query: str) -> dict[str, Any]:
     """
     End-to-end RAG QA.
@@ -99,12 +129,8 @@ def answer_with_rag(query: str) -> dict[str, Any]:
     context = build_context_block(chunks)
 
     if not llm_available():
-        # Deterministic fallback for demos without an API key
-        answer = (
-            "Based on retrieved company documents:\n\n"
-            + "\n\n".join(f"- ({c.document_name}) {c.excerpt}" for c in citations[:3])
-            + "\n\n[Offline mode: set OPENAI_API_KEY for full LLM answers.]"
-        )
+        # Deterministic extractive fallback for demos without an API key
+        answer = _offline_extractive_answer(query, chunks, citations)
         return {
             "answer": answer,
             "confidence": compute_confidence(chunks, answer),
